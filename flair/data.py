@@ -145,7 +145,11 @@ class Label:
     def __init__(self, value: str, score: float = 1.0):
         self.value = value
         self.score = score
-        super().__init__()
+
+        # weird but hopefully correct way to make sure JIT sees the _ defined
+        self._value = self.value
+        self._score = self.score
+        # super().__init__()
 
     @property
     def value(self):
@@ -172,11 +176,14 @@ class Label:
             self._score = 1.0
 
     def to_dict(self):
-        return {"value": self.value, "confidence": self.score}
+        d: Dict[str, Any] = {"value": self.value, "confidence": self.score}
+        return d
 
+    @torch.jit.ignore(drop=True)
     def __str__(self):
         return f"{self._value} ({round(self._score, 4)})"
 
+    @torch.jit.ignore(drop=True)
     def __repr__(self):
         return f"{self._value} ({round(self._score, 4)})"
 
@@ -190,7 +197,7 @@ class DataPoint:
     """
 
     def __init__(self):
-        self.annotation_layers = {}
+        self.annotation_layers: Dict[str, List[Label]]= {}
 
     @property
     @abstractmethod
@@ -208,7 +215,8 @@ class DataPoint:
     def add_label(self, label_type: str, value: str, score: float = 1.):
 
         if label_type not in self.annotation_layers:
-            self.annotation_layers[label_type] = [Label(value, score)]
+            val: List[Label] = [Label(value, score)]
+            self.annotation_layers[label_type] = val
         else:
             self.annotation_layers[label_type].append(Label(value, score))
 
@@ -223,7 +231,8 @@ class DataPoint:
         if label_type is None:
             return self.labels
 
-        return self.annotation_layers[label_type] if label_type in self.annotation_layers else []
+        empty: List[Label] = []
+        return self.annotation_layers[label_type] if label_type in self.annotation_layers else empty
 
     @property
     def labels(self) -> List[Label]:
@@ -460,7 +469,6 @@ class Span(DataPoint):
     def score(self):
         return self.labels[0].score
 
-
 class Sentence(DataPoint):
     """
        A Sentence is a list of Tokens and is used to represent a sentence or text fragment.
@@ -469,7 +477,7 @@ class Sentence(DataPoint):
     def __init__(
         self,
         text: str = None,
-        use_tokenizer: Union[bool, Callable[[str], List[Token]]] = False,
+        use_tokenizer: bool = False,
         language_code: str = None,
     ):
         """
@@ -482,7 +490,8 @@ class Sentence(DataPoint):
         :param labels:
         :param language_code:
         """
-        super().__init__()
+        # super().__init__()
+        DataPoint.__init__(self)
 
         self.tokens: List[Token] = []
 
