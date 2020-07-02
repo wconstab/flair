@@ -111,11 +111,19 @@ class LockedDropout(torch.nn.Module):
             return x
 
         if not self.batch_first:
-            m = x.data.new(1, x.size(1), x.size(2)).bernoulli_(1 - self.dropout_rate)
+            # m = x.data.new(1, x.size(1), x.size(2)).bernoulli_(1 - self.dropout_rate)
+            m = torch.empty((1, x.size(1), x.size(2)),
+                            dtype=x.dtype,
+                            device=x.device,
+                            layout=x.layout).bernoulli_(1 - self.dropout_rate)
         else:
-            m = x.data.new(x.size(0), 1, x.size(2)).bernoulli_(1 - self.dropout_rate)
-
-        mask = torch.autograd.Variable(m, requires_grad=False) / (1 - self.dropout_rate)
+            # m = x.data.new(x.size(0), 1, x.size(2)).bernoulli_(1 - self.dropout_rate)
+            m = torch.empty((x.size(0), 1, x.size(2)),
+                            dtype=x.dtype,
+                            device=x.device,
+                            layout=x.layout).bernoulli_(1 - self.dropout_rate)
+        # mask = torch.autograd.Variable(m, requires_grad=False) / (1 - self.dropout_rate)
+        mask = m / (1 - self.dropout_rate)
         mask = mask.expand_as(x)
         return mask * x
 
@@ -138,9 +146,13 @@ class WordDropout(torch.nn.Module):
         if not self.training or not self.dropout_rate:
             return x
 
-        m = x.data.new(x.size(0), x.size(1), 1).bernoulli_(1 - self.dropout_rate)
-
-        mask = torch.autograd.Variable(m, requires_grad=False)
+        # m = x.data.new(x.size(0), x.size(1), 1).bernoulli_(1 - self.dropout_rate)
+        m = torch.empty((x.size(0), x.size(1), 1),
+                        dtype=x.dtype,
+                        device=x.device,
+                        layout=x.layout).bernoulli_(1 - self.dropout_rate)
+        # mask = torch.autograd.Variable(m, requires_grad=False)
+        mask = m
         return mask * x
 
     def extra_repr(self):
