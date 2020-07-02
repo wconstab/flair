@@ -20,6 +20,7 @@ from flair.visual.training_curves import Plotter
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', metavar='fn', default="", help="Dump outputs into file")
 parser.add_argument('--seed', default=1234)
+parser.add_argument('--script', action='store_true', help="Whether to torchscript the model")
 args = parser.parse_args()
 
 torch.manual_seed(args.seed)
@@ -63,6 +64,8 @@ tagger: SequenceTagger = SequenceTagger(
     tag_type=tag_type,
     use_crf=True,
 )
+if args.script:
+    tagger = torch.jit.script(tagger)
 
 # initialize trainer
 from flair.trainers import ModelTrainer
@@ -73,7 +76,7 @@ trainer.train(
     "resources/taggers/example-ner",
     learning_rate=0.1,
     mini_batch_size=32,
-    max_epochs=1,
+    max_epochs=3,
     shuffle=False,
 )
 
