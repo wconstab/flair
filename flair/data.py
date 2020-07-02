@@ -496,7 +496,7 @@ class Sentence(DataPoint):
 
         # if text is passed, instantiate sentence with tokens (words)
         if text is not None:
-            text = self._restore_windows_1252_characters(text)
+            # text = self._restore_windows_1252_characters(text)
             [self.add_token(token) for token in tokenizer(text)]
 
         # log a warning if the dataset is empty
@@ -539,79 +539,79 @@ class Sentence(DataPoint):
             label_names.append(label.value)
         return label_names
 
-    def get_spans(self, label_type: str, min_score=-1) -> List[Span]:
+    # def get_spans(self, label_type: str, min_score=-1) -> List[Span]:
 
-        spans: List[Span] = []
+    #     spans: List[Span] = []
 
-        current_span = []
+    #     current_span = []
 
-        tags = defaultdict(lambda: 0.0)
+    #     tags = defaultdict(lambda: 0.0)
 
-        previous_tag_value: str = "O"
-        for token in self:
+    #     previous_tag_value: str = "O"
+    #     for token in self:
 
-            tag: Label = token.get_tag(label_type)
-            tag_value = tag.value
+    #         tag: Label = token.get_tag(label_type)
+    #         tag_value = tag.value
 
-            # non-set tags are OUT tags
-            if tag_value == "" or tag_value == "O":
-                tag_value = "O-"
+    #         # non-set tags are OUT tags
+    #         if tag_value == "" or tag_value == "O":
+    #             tag_value = "O-"
 
-            # anything that is not a BIOES tag is a SINGLE tag
-            if tag_value[0:2] not in ["B-", "I-", "O-", "E-", "S-"]:
-                tag_value = "S-" + tag_value
+    #         # anything that is not a BIOES tag is a SINGLE tag
+    #         if tag_value[0:2] not in ["B-", "I-", "O-", "E-", "S-"]:
+    #             tag_value = "S-" + tag_value
 
-            # anything that is not OUT is IN
-            in_span = False
-            if tag_value[0:2] not in ["O-"]:
-                in_span = True
+    #         # anything that is not OUT is IN
+    #         in_span = False
+    #         if tag_value[0:2] not in ["O-"]:
+    #             in_span = True
 
-            # single and begin tags start a new span
-            starts_new_span = False
-            if tag_value[0:2] in ["B-", "S-"]:
-                starts_new_span = True
+    #         # single and begin tags start a new span
+    #         starts_new_span = False
+    #         if tag_value[0:2] in ["B-", "S-"]:
+    #             starts_new_span = True
 
-            if (
-                    previous_tag_value[0:2] in ["S-"]
-                    and previous_tag_value[2:] != tag_value[2:]
-                    and in_span
-            ):
-                starts_new_span = True
+    #         if (
+    #                 previous_tag_value[0:2] in ["S-"]
+    #                 and previous_tag_value[2:] != tag_value[2:]
+    #                 and in_span
+    #         ):
+    #             starts_new_span = True
 
-            if (starts_new_span or not in_span) and len(current_span) > 0:
-                scores = [t.get_labels(label_type)[0].score for t in current_span]
-                span_score = sum(scores) / len(scores)
-                if span_score > min_score:
-                    span = Span(current_span)
-                    span.add_label(
-                        label_type=label_type,
-                        value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][0],
-                        score=span_score)
-                    spans.append(span)
+    #         if (starts_new_span or not in_span) and len(current_span) > 0:
+    #             scores = [t.get_labels(label_type)[0].score for t in current_span]
+    #             span_score = sum(scores) / len(scores)
+    #             if span_score > min_score:
+    #                 span = Span(current_span)
+    #                 span.add_label(
+    #                     label_type=label_type,
+    #                     value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][0],
+    #                     score=span_score)
+    #                 spans.append(span)
 
-                current_span = []
-                tags = defaultdict(lambda: 0.0)
+    #             current_span = []
+    #             tags = defaultdict(lambda: 0.0)
 
-            if in_span:
-                current_span.append(token)
-                weight = 1.1 if starts_new_span else 1.0
-                tags[tag_value[2:]] += weight
+    #         if in_span:
+    #             current_span.append(token)
+    #             weight = 1.1 if starts_new_span else 1.0
+    #             tags[tag_value[2:]] += weight
 
-            # remember previous tag
-            previous_tag_value = tag_value
+    #         # remember previous tag
+    #         previous_tag_value = tag_value
 
-        if len(current_span) > 0:
-            scores = [t.get_labels(label_type)[0].score for t in current_span]
-            span_score = sum(scores) / len(scores)
-            if span_score > min_score:
-                span = Span(current_span)
-                span.add_label(
-                    label_type=label_type,
-                    value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][0],
-                    score=span_score)
-                spans.append(span)
+    #     if len(current_span) > 0:
+    #         scores = [t.get_labels(label_type)[0].score for t in current_span]
+    #         span_score = sum(scores) / len(scores)
+    #         if span_score > min_score:
+    #             span = Span(current_span)
+    #             span.add_label(
+    #                 label_type=label_type,
+    #                 value=sorted(tags.items(), key=lambda k_v: k_v[1], reverse=True)[0][0],
+    #                 score=span_score)
+    #             spans.append(span)
 
-        return spans
+    #     return spans
 
     @property
     def embedding(self):
@@ -824,27 +824,29 @@ class Sentence(DataPoint):
 
         return f'Sentence: "{tokenized_string}"   [− Tokens: {len(self)}{token_labels}{sentence_labels}]'
 
-    def get_language_code(self) -> str:
-        if self.language_code is None:
-            import langdetect
+    # @torch.jit.ignore
+    # def get_language_code(self) -> str:
+    #     if self.language_code is None:
+    #         import langdetect
 
-            try:
-                self.language_code = langdetect.detect(self.to_plain_string())
-            except:
-                self.language_code = "en"
+    #         try:
+    #             self.language_code = langdetect.detect(self.to_plain_string())
+    #         except:
+    #             self.language_code = "en"
 
-        return self.language_code
+    #     return self.language_code
 
-    @staticmethod
-    def _restore_windows_1252_characters(text: str) -> str:
-        def to_windows_1252(match):
-            try:
-                return bytes([ord(match.group(0))]).decode("windows-1252")
-            except UnicodeDecodeError:
-                # No character at the corresponding code point: remove it
-                return ""
+    # @staticmethod
+    # @torch.jit.ignore
+    # def _restore_windows_1252_characters(text: str) -> str:
+    #     def to_windows_1252(match):
+    #         try:
+    #             return bytes([ord(match.group(0))]).decode("windows-1252")
+    #         except UnicodeDecodeError:
+    #             # No character at the corresponding code point: remove it
+    #             return ""
 
-        return re.sub(r"[\u0080-\u0099]", to_windows_1252, text)
+    #     return re.sub(r"[\u0080-\u0099]", to_windows_1252, text)
 
 
 class Image(DataPoint):
