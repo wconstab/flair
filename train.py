@@ -1,7 +1,12 @@
 from typing import List
+import argparse
+import numpy as np
+import pickle
+import random
+import torch
 
 import flair.datasets
-from flair.data import Corpus
+from flair.data import Corpus, Sentence
 from flair.embeddings import (
     TokenEmbeddings,
     WordEmbeddings,
@@ -12,8 +17,19 @@ from flair.embeddings import (
 from flair.training_utils import EvaluationMetric
 from flair.visual.training_curves import Plotter
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', metavar='fn', default="", help="Dump outputs into file")
+parser.add_argument('--seed', default=1234)
+args = parser.parse_args()
+
+torch.manual_seed(args.seed)
+random.seed(args.seed)
+np.random.seed(args.seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 # 1. get the corpus
-corpus: Corpus = flair.datasets.UD_ENGLISH()
+corpus: Corpus = flair.datasets.UD_ENGLISH().downsample(0.01)
 print(corpus)
 
 # 2. what tag do we want to predict?
@@ -25,9 +41,9 @@ print(tag_dictionary.idx2item)
 
 # initialize embeddings
 embedding_types: List[TokenEmbeddings] = [
-    WordEmbeddings("glove"),
+    # WordEmbeddings("glove"),
     # comment in this line to use character embeddings
-    # CharacterEmbeddings(),
+    CharacterEmbeddings(),
     # comment in these lines to use contextual string embeddings
     #
     # FlairEmbeddings('news-forward'),
@@ -57,10 +73,15 @@ trainer.train(
     "resources/taggers/example-ner",
     learning_rate=0.1,
     mini_batch_size=32,
-    max_epochs=20,
+    max_epochs=1,
     shuffle=False,
 )
 
-plotter = Plotter()
-plotter.plot_training_curves("resources/taggers/example-ner/loss.tsv")
-plotter.plot_weights("resources/taggers/example-ner/weights.txt")
+if args.debug:
+    sentence = Sentence('I love PyTorch!')
+    res, out = tagger.evaluate(sentence)
+    torch.save(out, args.debug)
+
+# plotter = Plotter()
+# plotter.plot_training_curves("resources/taggers/example-ner/loss.tsv")
+# plotter.plot_weights("resources/taggers/example-ner/weights.txt")
